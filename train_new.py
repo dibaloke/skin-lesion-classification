@@ -7,9 +7,7 @@ import datetime
 import os
 import glob
 import tensorflow as tf
-from keras.legacy_tf_layers.pooling import MaxPooling2D
-from keras.preprocessing.image import ImageDataGenerator
-from keras.preprocessing.image import array_to_img, img_to_array
+from tensorflow.keras.preprocessing import image_dataset_from_directory
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, Flatten, BatchNormalization, Dropout, Dense, MaxPool2D
 from keras.callbacks import ReduceLROnPlateau
@@ -17,22 +15,11 @@ from keras.callbacks import ReduceLROnPlateau
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
 
-
-#%%
-#filelist1 = glob.glob('ISIC_2019_Test_Input/ISIC_2019_Training_Input/*.jpg')
-#filelist2 = glob.glob('PH2_Dataset_Preprocessed/Atypical_Nevus/*.bmp')
-#filelist3 = glob.glob('PH2_Dataset_Preprocessed/Melanoma/*.bmp')
-
-#x1 = np.array([np.array(Image.open(fname)) for fname in filelist1])
-# x2 = np.array([np.array(Image.open(fname)) for fname in filelist2])
-# x3 = np.array([np.array(Image.open(fname)) for fname in filelist3])
-# Y = np.expand_dims(np.array([0]*x1.shape[0]+[1]*x2.shape[0]+[2]*x3.shape[0]),axis=1)
-# X = np.concatenate((x1,x2,x3))
 #%%
 
-im_path = 'skin-lesion-classification/ISIC_2019_Training_Input/ISIC_2019_Training_Input'
-csv_file_train = pd.read_csv('ISIC_2019_Training_GroundTruth.csv', delimiter=',')
-class_names = csv_file_train.columns[1:]
+im_path = 'train'
+csv_file_train = pd.read_csv('../ISIC_2019_Training_GroundTruth.csv', delimiter=',')
+class_names = list(csv_file_train.columns[1:])
 X = np.array(csv_file_train['image'], dtype=str)
 X = [os.path.join(im_path, X[i]+'.jpg') for i in range(len(X))]
 Y = csv_file_train[class_names]
@@ -41,26 +28,19 @@ Y.columns=['']*len(Y.columns)
 Y = np.array(Y)
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.15, random_state=1)
 
-train_datagen = ImageDataGenerator(rescale = 1./255,
-                                  rotation_range = 10,
-                                  width_shift_range = 0.2,
-                                  height_shift_range = 0.2,
-                                  shear_range = 0.2,
-                                  horizontal_flip = True,
-                                  vertical_flip = True,
-                                  fill_mode = 'nearest')
-#train_datagen.fit(X_train)
-trains = train_datagen.flow_from_directory(im_path)
-test_datagen = ImageDataGenerator(rescale = 1./255)
-test_datagen.fit(X_test)
-
-train_data = train_datagen.flow(X_train, Y_train, batch_size = 10)
-test_data = test_datagen.flow(X_test, Y_test, batch_size = 10)
+train_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=8, label_mode='categorical', validation_split=.15, 
+                                             image_size=(256, 256), subset='training')
 
 
+val_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=8, label_mode='categorical', validation_split=.15, 
+                                             image_size=(256, 256), subset='validation')
+
+
+
+#%%
 
 model1 = Sequential()
-model1.add(Conv2D(16, kernel_size = (3,3), input_shape = (576, 768,3), activation = 'relu', padding = 'same'))
+model1.add(Conv2D(16, kernel_size = (3,3), input_shape = (256, 256, 3), activation = 'relu', padding = 'same'))
 model1.add(Conv2D(32, kernel_size = (3,3), activation = 'relu'))
 model1.add(MaxPool2D(pool_size = (2,2)))
 
@@ -78,7 +58,7 @@ model1.add(Dense(64, activation = 'relu'))
 model1.add(Dense(64, activation='relu'))
 model1.add(Dense(32, activation='relu'))
 model1.add(Dense(32, activation='relu'))
-model1.add(Dense(7, activation='softmax'))
+model1.add(Dense(9, activation='softmax'))
 
 
 learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
@@ -93,12 +73,18 @@ optimizer = tf.keras.optimizers.Adam(learning_rate = 0.00075,
                                     beta_2 = 0.999,
                                     epsilon = 1e-8)
 
-model1.compile(loss = 'sparse_categorical_crossentropy',
+model1.compile(loss = 'categorical_crossentropy',
              optimizer = optimizer,
               metrics = ['accuracy'])
 
 print(model1.summary())
+#%%
 
+
+model1.fit(train_datagen, epochs=10)
+
+
+#%%
 
 model2 = Sequential()
 model2.add(Conv2D(16, kernel_size = (3,3), input_shape = (576, 768,3), activation = 'relu', padding = 'same'))
