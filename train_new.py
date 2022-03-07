@@ -20,19 +20,12 @@ from sklearn.metrics import confusion_matrix, classification_report
 im_path = 'train'
 csv_file_train = pd.read_csv('../ISIC_2019_Training_GroundTruth.csv', delimiter=',')
 class_names = list(csv_file_train.columns[1:])
-X = np.array(csv_file_train['image'], dtype=str)
-X = [os.path.join(im_path, X[i]+'.jpg') for i in range(len(X))]
-Y = csv_file_train[class_names]
-Y.rename_axis(None)
-Y.columns=['']*len(Y.columns)
-Y = np.array(Y)
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.15, random_state=1)
 
-train_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=8, label_mode='categorical', validation_split=.15, 
+train_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=32, label_mode='categorical', validation_split=.15, 
                                              image_size=(256, 256), subset='training')
 
 
-val_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=8, label_mode='categorical', validation_split=.15, 
+val_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=32, label_mode='categorical', validation_split=.15, 
                                              image_size=(256, 256), subset='validation')
 
 
@@ -68,7 +61,7 @@ learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
                                             min_lr=0.00001)
 
 
-optimizer = tf.keras.optimizers.Adam(learning_rate = 0.00075,
+optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001,
                                     beta_1 = 0.9,
                                     beta_2 = 0.999,
                                     epsilon = 1e-8)
@@ -81,11 +74,11 @@ print(model1.summary())
 #%%
 
 
-model1.fit(train_datagen, epochs=10)
-
+model1.fit(train_datagen, epochs=10, callbacks=[learning_rate_reduction])
+model1.save('model1.hdf5')
 
 #%%
-
+'''
 model2 = Sequential()
 model2.add(Conv2D(16, kernel_size = (3,3), input_shape = (576, 768,3), activation = 'relu', padding = 'same'))
 model2.add(Conv2D(32, kernel_size = (3,3), activation = 'relu'))
@@ -264,7 +257,7 @@ history3 = model3.fit(X_train,
 ACC = history3.history['accuracy']
 VAL_ACC = history3.history['val_accuracy']
 #model3.save('model3.hdf5')
-
+'''
 
 
 
