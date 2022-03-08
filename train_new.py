@@ -18,14 +18,14 @@ from sklearn.metrics import confusion_matrix, classification_report
 #%%
 
 im_path = 'train'
-csv_file_train = pd.read_csv('../ISIC_2019_Training_GroundTruth.csv', delimiter=',')
+csv_file_train = pd.read_csv('ISIC_2019_Training_GroundTruth.csv', delimiter=',')
 class_names = list(csv_file_train.columns[1:])
 
-train_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=32, label_mode='categorical', validation_split=.15, 
+train_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=8, label_mode='categorical', validation_split=.15, 
                                              image_size=(256, 256), subset='training')
 
 
-val_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=32, label_mode='categorical', validation_split=.15, 
+val_datagen = image_dataset_from_directory(im_path, seed=1, batch_size=8, label_mode='categorical', validation_split=.15, 
                                              image_size=(256, 256), subset='validation')
 
 
